@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Calendar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4A90E2; --sidebar-bg: #2c3e50; --main-bg: #f4f7f6; --card-bg: #ffffff; --text-color: #34495e; --border-color: #e8e8e8; --font-size-base: 14px; --danger-color: #e74c3c; --success-color: #2ecc71;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--main-bg); margin: 0; font-size: var(--font-size-base); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; background-color: var(--card-bg); padding: 0 1.5rem; height: 60px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .top-nav .brand { font-size: 1.5rem; font-weight: 600; color: var(--text-color); }
+        .top-nav .user-profile { font-weight: 500; }
+        .app-container { display: flex; flex-grow: 1; overflow: hidden; }
+        .sidebar { width: 220px; background-color: var(--sidebar-bg); color: #bdc3c7; padding: 1rem; display: flex; flex-direction: column; flex-shrink: 0; }
+        .nav-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+        .nav-item a { display: flex; align-items: center; padding: 0.8rem; text-decoration: none; border-radius: 6px; margin-bottom: 0.25rem; color: #bdc3c7; font-weight: 500; cursor: pointer; }
+        .nav-item a:hover, .nav-item a.active { background-color: rgba(255, 255, 255, 0.1); color: white; }
+        .logout-btn { margin-top: auto; border-top: 1px solid #34495e; padding-top: 0.5rem; }
+        .content-wrapper { flex-grow: 1; padding: 1.5rem; overflow-y: auto; }
+        .card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1.5rem; }
+        h1 { font-size: 1.8rem; margin-top: 0; margin-bottom: 1.5rem; }
+        h2 { margin-top: 0; font-size: 1.2rem; padding-bottom: 0.8rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; }
+        input[type="text"], input[type="number"], textarea { width: 100%; padding: 10px; margin-bottom: 0.8rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; font-family: 'Poppins', sans-serif; }
+        button, .button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+        .button.danger { background-color: var(--danger-color); }
+        .button.success { background-color: var(--success-color); }
+        .room-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .members-list, .requests-list { list-style: none; padding: 0; }
+        .members-list li, .requests-list > div { padding: 0.4rem 0; font-size: 0.9rem; border-bottom: 1px solid #f0f0f0; }
+        .grocery-grid { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; }
+        .grocery-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; border-bottom: 1px solid var(--border-color); }
+        .purchase-btn { background-color: var(--success-color); }
+        .hidden { display: none; }
+        
+        /* Updated calendar-specific styles */
+        #calendar-container { max-width: 900px; margin: 0 auto; }
+        .fc-toolbar-title { font-size: 1.5rem !important; font-weight: 600; color: var(--text-color); }
+        .fc-toolbar-chunk .fc-button {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-color) !important;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+        }
+                #notificationBar {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+        }
+        .notification {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-left: 5px solid var(--primary-color);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .notification-header {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        .notification-body {
+            font-size: 0.85rem;
+        }
+        .fc-toolbar-chunk .fc-button-primary {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+            border-color: var(--primary-color) !important;
+        }
+        .fc-toolbar-chunk .fc-button-primary:not(:disabled).fc-button-active {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+            border-color: var(--primary-color) !important;
+        }
+        .fc-daygrid-event {
+            background-color: var(--primary-color) !important;
+            border: none !important;
+            color: white !important;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        .fc-event-title-container {
+            padding: 2px;
+        }
+    </style>
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+</head>
+<body>
+    <header class="top-nav">
+        <div class="brand">Livaura</div>
+        <div class="user-profile"><span id="userName"></span></div>
+    </header>
+    <div id="notificationBar"></div>
+    <div class="app-container">
+        <aside class="sidebar">
+            <ul class="nav-list" id="roomNav">
+                <li class="nav-item"><a class="nav-link" href="room.html"><span>Overview</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomGrocery.html"><span>Grocery List</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomExpenses.html"><span>Expenses</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomActivity.html"><span>Activity</span></a></li>
+                <li class="nav-item"><a class="nav-link active" href="roomCalendar.html"><span>Calendar</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomChat.html"><span>Message Board</span></a></li>
+            </ul>
+            <div class="logout-btn"><button id="logoutBtn" style="background:none; border:none; color:inherit; padding:0; width:100%; text-align:left;">Logout</button></div>
+        </aside>
+        <main class="content-wrapper">
+            <h1>Shared Calendar</h1>
+            <div class="card" id='calendar-container'>
+                <div id='calendar'></div>
+            </div>
+            
+        </main>
+    </div>
+
+    <script src="http://localhost:5001/socket.io/socket.io.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+<script>
+    const token = localStorage.getItem('livaura_token');
+    const user = JSON.parse(localStorage.getItem('livaura_user'));
+    const API_BASE_URL = 'http://localhost:5001';
+
+                   /* --- Notification JS (to be added before initializePage() in all room HTML files) --- */
+        const socket = io(API_BASE_URL); // Socket.io client connection
+
+        function setupNotifications(roomId) {
+            socket.emit('joinRoom', roomId); // Join the room's socket channel
+
+            socket.on('activityNotification', (data) => {
+                const user = JSON.parse(localStorage.getItem('livaura_user'));
+                // Ignore notifications generated by the current user
+                if (data.userName !== user.name) {
+                    showNotification(data);
+                }
+            });
+        }
+
+        function showNotification(data) {
+            const bar = document.getElementById('notificationBar');
+            if (!bar) return; // Prevent errors if on dashboard page
+
+            const note = document.createElement('div');
+            note.className = 'notification';
+            
+            let icon = '🔔';
+            let title = 'Activity Update';
+            
+            if (data.type === 'join' || data.type === 'leave' || data.type === 'lock') {
+                title = 'Room/Member Change';
+                icon = '👥';
+            } else if (data.type === 'expense' || data.type === 'purchase') {
+                title = 'Money Activity';
+                icon = '💰';
+            } else if (data.type === 'chat') {
+                title = 'New Message';
+                icon = '💬';
+            } else if (data.type === 'calendar') {
+                title = 'Calendar Event';
+                icon = '🗓️';
+            }
+            
+            note.innerHTML = `
+                <div class="notification-header">${icon} ${title}</div>
+                <div class="notification-body">${data.description}</div>
+            `;
+            
+            bar.prepend(note); // Add to the top
+            
+            // Animate it in
+            setTimeout(() => { note.classList.add('show'); }, 10);
+
+            // Animate it out and remove after 5 seconds
+            setTimeout(() => {
+                note.classList.remove('show');
+                note.addEventListener('transitionend', () => note.remove());
+            }, 5000);
+        }
+
+    async function initializePage() {
+        if (!token || !user) { window.location.href = 'index.html'; return; }
+        document.getElementById('userName').textContent = user.name;
+        
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === 'roomCalendar.html') {
+                link.classList.add('active');
+            }
+        });
+        const roomResponse = await fetch(`${API_BASE_URL}/api/rooms`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const room = await roomResponse.json();
+        
+        if (room) {
+            setupNotifications(room._id);
+        }
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            editable: true,
+            droppable: true,
+            events: async function(fetchInfo, successCallback, failureCallback) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/calendar/events`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Failed to fetch events.');
+                    }
+                    const events = await response.json();
+                    successCallback(events.map(event => ({
+                        id: event._id, // Add event ID for deletion
+                        title: event.summary + ' (by ' + event.addedBy.name + ')',
+                        start: event.start,
+                        end: event.end,
+                        addedBy: event.addedBy._id // Store the user ID
+                    })));
+                } catch (error) {
+                    failureCallback(error);
+                }
+            },
+            eventClick: function(info) {
+                const eventId = info.event.id;
+                const eventAddedBy = info.event.extendedProps.addedBy;
+
+                if (user._id === eventAddedBy) {
+                    if (confirm('Are you sure you want to delete this event?')) {
+                        deleteEvent(eventId);
+                    }
+                } else {
+                    alert('Event: ' + info.event.title + '\n\nYou can only delete events that you have added.');
+                }
+            },
+            dateClick: async function(info) {
+                const title = prompt('Enter a title for the new event:');
+                if (title) {
+                    const start = info.dateStr;
+                    const end = new Date(new Date(info.date).getTime() + 24 * 60 * 60 * 1000).toISOString();
+                    
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/api/calendar/events`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ summary: title, start: start, end: end })
+                        });
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.message || 'Failed to add event.');
+                        }
+                        calendar.refetchEvents();
+                    } catch (error) {
+                        alert(error.message);
+                    }
+                }
+            }
+        });
+        calendar.render();
+
+        async function deleteEvent(eventId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/calendar/events/${eventId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to delete event.');
+                }
+                alert('Event deleted successfully.');
+                calendar.refetchEvents();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+    }
+    
+    document.getElementById('logoutBtn').addEventListener('click', () => { 
+        localStorage.clear(); 
+        window.location.href = 'index.html'; 
+    });
+
+    initializePage();
+</script>
+</body>
+</html>

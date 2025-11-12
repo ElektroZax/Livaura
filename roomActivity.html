@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Activity</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4A90E2; --sidebar-bg: #2c3e50; --main-bg: #f4f7f6; --card-bg: #ffffff; --text-color: #34495e; --border-color: #e8e8e8; --font-size-base: 14px; --danger-color: #e74c3c; --success-color: #2ecc71;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--main-bg); margin: 0; font-size: var(--font-size-base); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; background-color: var(--card-bg); padding: 0 1.5rem; height: 60px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .top-nav .brand { font-size: 1.5rem; font-weight: 600; color: var(--text-color); }
+        .top-nav .user-profile { font-weight: 500; }
+        .app-container { display: flex; flex-grow: 1; overflow: hidden; }
+        .sidebar { width: 220px; background-color: var(--sidebar-bg); color: #bdc3c7; padding: 1rem; display: flex; flex-direction: column; flex-shrink: 0; }
+        .nav-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+        .nav-item a { display: flex; align-items: center; padding: 0.8rem; text-decoration: none; border-radius: 6px; margin-bottom: 0.25rem; color: #bdc3c7; font-weight: 500; cursor: pointer; }
+        .nav-item a:hover, .nav-item a.active { background-color: rgba(255, 255, 255, 0.1); color: white; }
+        .logout-btn { margin-top: auto; border-top: 1px solid #34495e; padding-top: 0.5rem; }
+        .content-wrapper { flex-grow: 1; padding: 1.5rem; overflow-y: auto; }
+        .card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1.5rem; }
+        h1 { font-size: 1.8rem; margin-top: 0; margin-bottom: 1.5rem; }
+        h2 { margin-top: 0; font-size: 1.2rem; padding-bottom: 0.8rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; }
+        input[type="text"], input[type="number"], textarea { width: 100%; padding: 10px; margin-bottom: 0.8rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; font-family: 'Poppins', sans-serif; }
+        button, .button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+        .button.danger { background-color: var(--danger-color); }
+        .button.success { background-color: var(--success-color); }
+        .room-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .members-list, .requests-list { list-style: none; padding: 0; }
+        .members-list li, .requests-list > div { padding: 0.4rem 0; font-size: 0.9rem; border-bottom: 1px solid #f0f0f0; }
+        .grocery-grid { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; }
+        .grocery-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; border-bottom: 1px solid var(--border-color); }
+        .purchase-btn { background-color: var(--success-color); }
+        .hidden { display: none; }
+        .activity-item {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 0.8rem; 
+            border-bottom: 1px solid #f0f0f0;
+            border-left: 5px solid; /* A colored line to indicate type */
+            margin-bottom: 5px;
+        }
+        .activity-join { border-color: var(--success-color); }
+        .activity-leave { border-color: var(--danger-color); }
+        .activity-expense, .activity-purchase { border-color: #f39c12; }
+        .activity-lock { border-color: #3498db; }
+        .activity-calendar { border-color: #9b59b6; }
+        .activity-chat { border-color: #1abc9c; }
+        
+        /* ADDED: Styles for the new sub-navigation */
+        .sub-nav { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 1.5rem; overflow-x: auto; }
+        .sub-nav button { 
+            background: none; border: none; padding: 0.8rem 1.2rem; cursor: pointer; 
+            font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 500; 
+            color: #7f8c8d; border-bottom: 3px solid transparent; margin-bottom: -1px; 
+            flex-shrink: 0; /* Prevent buttons from shrinking */
+        }
+        .sub-nav button.active { 
+            color: var(--primary-color); border-bottom-color: var(--primary-color); 
+        }
+                #notificationBar {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+        }
+        .notification {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-left: 5px solid var(--primary-color);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .notification-header {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        .notification-body {
+            font-size: 0.85rem;
+        }
+        .activity-pane {
+            max-height: calc(100vh - 280px); /* Adjust based on header/nav heights */
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <header class="top-nav">
+        <div class="brand">Livaura</div>
+        <div class="user-profile"><span id="userName"></span></div>
+    </header>
+    <div id="notificationBar"></div>
+    <div class="app-container">
+        <aside class="sidebar">
+            <ul class="nav-list" id="roomNav">
+                <li class="nav-item"><a class="nav-link" href="room.html"><span>Overview</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomGrocery.html"><span>Grocery List</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomExpenses.html"><span>Expenses</span></a></li>
+                <li class="nav-item"><a class="nav-link active" href="roomActivity.html"><span>Activity</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomCalendar.html"><span>Calendar</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomChat.html"><span>Message Board</span></a></li>
+            </ul>
+            <div class="logout-btn"><button id="logoutBtn" style="background:none; border:none; color:inherit; padding:0; width:100%; text-align:left;">Logout</button></div>
+        </aside>
+        <main class="content-wrapper">
+            <h1>Room Activity</h1>
+            <div class="card">
+                <h2 style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Activity History</span>
+                    <button id="clearActivitiesBtn" class="button danger hidden">Clear All</button>
+                </h2>
+                
+                <nav class="sub-nav">
+                    <button class="sub-nav-btn active" data-target="all">All Activity</button>
+                    <button class="sub-nav-btn" data-target="members">Members & Room</button>
+                    <button class="sub-nav-btn" data-target="groceries">Groceries</button>
+                    <button class="sub-nav-btn" data-target="expenses">Expenses</button>
+                    <button class="sub-nav-btn" data-target="misc">Calendar & Chat</button>
+                </nav>
+
+                <div id="activityContent">
+                    <div id="allPane" class="activity-pane" data-category="all"></div>
+                    <div id="membersPane" class="activity-pane hidden" data-category="members"></div>
+                    <div id="groceriesPane" class="activity-pane hidden" data-category="groceries"></div>
+                    <div id="expensesPane" class="activity-pane hidden" data-category="expenses"></div>
+                    <div id="miscPane" class="activity-pane hidden" data-category="misc"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="http://localhost:5001/socket.io/socket.io.js"></script>
+    <script>
+        const token = localStorage.getItem('livaura_token');
+        const user = JSON.parse(localStorage.getItem('livaura_user'));
+        const API_BASE_URL = 'http://localhost:5001';
+        let allActivities = []; // Store all fetched activities
+
+                       /* --- Notification JS (to be added before initializePage() in all room HTML files) --- */
+        const socket = io(API_BASE_URL); // Socket.io client connection
+
+        function setupNotifications(roomId) {
+            socket.emit('joinRoom', roomId); // Join the room's socket channel
+
+            socket.on('activityNotification', (data) => {
+                const user = JSON.parse(localStorage.getItem('livaura_user'));
+                // Ignore notifications generated by the current user
+                if (data.userName !== user.name) {
+                    showNotification(data);
+                }
+            });
+        }
+
+        function showNotification(data) {
+            const bar = document.getElementById('notificationBar');
+            if (!bar) return; // Prevent errors if on dashboard page
+
+            const note = document.createElement('div');
+            note.className = 'notification';
+            
+            let icon = '🔔';
+            let title = 'Activity Update';
+            
+            if (data.type === 'join' || data.type === 'leave' || data.type === 'lock') {
+                title = 'Room/Member Change';
+                icon = '👥';
+            } else if (data.type === 'expense' || data.type === 'purchase') {
+                title = 'Money Activity';
+                icon = '💰';
+            } else if (data.type === 'chat') {
+                title = 'New Message';
+                icon = '💬';
+            } else if (data.type === 'calendar') {
+                title = 'Calendar Event';
+                icon = '🗓️';
+            }
+            
+            note.innerHTML = `
+                <div class="notification-header">${icon} ${title}</div>
+                <div class="notification-body">${data.description}</div>
+            `;
+            
+            bar.prepend(note); // Add to the top
+            
+            // Animate it in
+            setTimeout(() => { note.classList.add('show'); }, 10);
+
+            // Animate it out and remove after 5 seconds
+            setTimeout(() => {
+                note.classList.remove('show');
+                note.addEventListener('transitionend', () => note.remove());
+            }, 5000);
+        }
+
+        async function initializePage() {
+            if (!token || !user) { window.location.href = 'index.html'; return; }
+            document.getElementById('userName').textContent = user.name;
+        
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === 'roomActivity.html') link.classList.add('active');
+            });
+
+            // Check ownership for the "Clear All" button
+            const response = await fetch(`${API_BASE_URL}/api/rooms`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const room = await response.json();
+            if (room && room.createdBy === user._id) {
+                document.getElementById('clearActivitiesBtn').classList.remove('hidden');
+            }
+
+            // Initial data fetch and render
+            await fetchActivities();
+            
+            // Set up tab switching listener
+            document.querySelectorAll('.sub-nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.sub-nav-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const targetCategory = btn.getAttribute('data-target');
+                    renderActivities(targetCategory);
+                });
+            });
+        }
+        
+        document.getElementById('clearActivitiesBtn').addEventListener('click', async () => {
+            if (confirm("Are you sure you want to clear all activities? This cannot be undone.")) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/activities/clear`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        alert('Activities cleared successfully!');
+                        fetchActivities(); // Refresh the list
+                    } else {
+                        const errorData = await response.json();
+                        alert(`Error: ${errorData.message}`);
+                    }
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
+                }
+            }
+        });
+
+        function categorizeActivity(activity) {
+            switch (activity.type) {
+                case 'join':
+                case 'leave':
+                case 'lock':
+                    return 'members';
+                case 'purchase':
+                    return 'groceries';
+                case 'expense':
+                    return 'expenses';
+                case 'calendar':
+                case 'chat':
+                    return 'misc';
+                default:
+                    return 'all';
+            }
+        }
+        
+        function renderActivityItem(activity) {
+            const date = new Date(activity.createdAt).toLocaleString();
+            return `
+                <div class="activity-item activity-${activity.type}">
+                    <div>
+                        <p style="margin: 0; font-size: 0.95rem;">${activity.description}</p>
+                        <span style="font-size: 0.8rem; color: #7f8c8d;">${date}</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderActivities(activeCategory) {
+            document.querySelectorAll('.activity-pane').forEach(pane => {
+                pane.classList.add('hidden');
+                pane.innerHTML = ''; // Clear content before rendering
+            });
+
+            const panes = {
+                all: document.getElementById('allPane'),
+                members: document.getElementById('membersPane'),
+                groceries: document.getElementById('groceriesPane'),
+                expenses: document.getElementById('expensesPane'),
+                misc: document.getElementById('miscPane')
+            };
+            
+            if (allActivities.length === 0) {
+                 // Display 'No activity' message on the active pane
+                 if (panes[activeCategory]) {
+                     panes[activeCategory].innerHTML = '<p style="text-align: center; color: #7f8c8d; font-style: italic;">No activity found.</p>';
+                 }
+            } else {
+                let renderedCount = 0;
+                
+                allActivities.forEach(activity => {
+                    const category = categorizeActivity(activity);
+                    const html = renderActivityItem(activity);
+
+                    // Render to the "All" pane
+                    panes.all.innerHTML += html;
+
+                    // Render to its specific category pane
+                    if (panes[category]) {
+                        panes[category].innerHTML += html;
+                    }
+
+                    renderedCount++;
+                });
+
+                // Display 'No activity' message for empty category panes
+                Object.keys(panes).forEach(cat => {
+                    if (cat !== 'all' && panes[cat].innerHTML === '') {
+                        panes[cat].innerHTML = '<p style="text-align: center; color: #7f8c8d; font-style: italic;">No activity in this category.</p>';
+                    }
+                });
+            }
+            
+            // Finally, show only the active pane
+            if (panes[activeCategory]) {
+                panes[activeCategory].classList.remove('hidden');
+            }
+        }
+
+        async function fetchActivities() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/activities`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                allActivities = await response.json();
+                
+                // Render the initial active tab (All Activity)
+                renderActivities('all'); 
+            } catch (error) {
+                console.error("Failed to fetch activities:", error);
+                document.getElementById('allPane').innerHTML = '<p style="color: var(--danger-color); text-align: center;">Error loading activities.</p>';
+                document.getElementById('allPane').classList.remove('hidden');
+            }
+        }
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => { 
+            localStorage.clear(); 
+            window.location.href = 'index.html'; 
+        });
+
+        initializePage();
+    </script>
+</body>
+</html>

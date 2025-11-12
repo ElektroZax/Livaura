@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Board</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4A90E2; --sidebar-bg: #2c3e50; --main-bg: #f4f7f6; --card-bg: #ffffff; --text-color: #34495e; --border-color: #e8e8e8; --font-size-base: 14px; --danger-color: #e74c3c; --success-color: #2ecc71;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--main-bg); margin: 0; font-size: var(--font-size-base); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; background-color: var(--card-bg); padding: 0 1.5rem; height: 60px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .top-nav .brand { font-size: 1.5rem; font-weight: 600; color: var(--text-color); }
+        .top-nav .user-profile { font-weight: 500; }
+        .app-container { display: flex; flex-grow: 1; overflow: hidden; }
+        .sidebar { width: 220px; background-color: var(--sidebar-bg); color: #bdc3c7; padding: 1rem; display: flex; flex-direction: column; flex-shrink: 0; }
+        .nav-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+        .nav-item a { display: flex; align-items: center; padding: 0.8rem; text-decoration: none; border-radius: 6px; margin-bottom: 0.25rem; color: #bdc3c7; font-weight: 500; cursor: pointer; }
+        .nav-item a:hover, .nav-item a.active { background-color: rgba(255, 255, 255, 0.1); color: white; }
+        .logout-btn { margin-top: auto; border-top: 1px solid #34495e; padding-top: 0.5rem; }
+        .content-wrapper { flex-grow: 1; padding: 1.5rem; overflow-y: auto; }
+        .card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1.5rem; }
+        h1 { font-size: 1.8rem; margin-top: 0; margin-bottom: 1.5rem; }
+        h2 { margin-top: 0; font-size: 1.2rem; padding-bottom: 0.8rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; }
+        input[type="text"], input[type="number"], textarea { width: 100%; padding: 10px; margin-bottom: 0.8rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; font-family: 'Poppins', sans-serif; }
+        button, .button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+        .button.danger { background-color: var(--danger-color); }
+        .button.success { background-color: var(--success-color); }
+        .room-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .members-list, .requests-list { list-style: none; padding: 0; }
+        .members-list li, .requests-list > div { padding: 0.4rem 0; font-size: 0.9rem; border-bottom: 1px solid #f0f0f0; }
+        .grocery-grid { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; }
+        .grocery-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; border-bottom: 1px solid var(--border-color); }
+        .purchase-btn { background-color: var(--success-color); }
+        .hidden { display: none; }
+
+        /* Chat-specific styles */
+        #chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 120px);
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+                #notificationBar {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+        }
+        .notification {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-left: 5px solid var(--primary-color);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .notification-header {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        .notification-body {
+            font-size: 0.85rem;
+        }
+        #messages {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            list-style: none;
+            margin: 0;
+        }
+        #message-form {
+            display: flex;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        #message-input {
+            flex-grow: 1;
+            margin-right: 1rem;
+        }
+        .message {
+            margin-bottom: 0.5rem;
+        }
+        .message-user {
+            font-weight: 600;
+        }
+        .message-time {
+            font-size: 0.75rem;
+            color: #888;
+            margin-left: 0.5rem;
+        }
+        .message-text {
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <header class="top-nav">
+        <div class="brand">Livaura</div>
+        <div class="user-profile"><span id="userName"></span></div>
+    </header>
+    <div class="app-container">
+        <aside class="sidebar">
+            <ul class="nav-list" id="roomNav">
+                <li class="nav-item"><a class="nav-link" href="room.html"><span>Overview</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomGrocery.html"><span>Grocery List</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomExpenses.html"><span>Expenses</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomActivity.html"><span>Activity</span></a></li>
+                <li class="nav-item"><a class="nav-link active" href="roomCalendar.html"><span>Calendar</span></a></li>
+                <li class="nav-item"><a class="nav-link active" href="roomChat.html"><span>Message Board</span></a></li>
+            </ul>
+            <div class="logout-btn"><button id="logoutBtn" style="background:none; border:none; color:inherit; padding:0; width:100%; text-align:left;">Logout</button></div>
+        </aside>
+        <main class="content-wrapper">
+            <h1 style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Message Board</span>
+                <button id="clearChatBtn" class="button danger hidden">Clear Chat</button>
+            </h1>
+            <div id="chat-container">
+                <ul id="messages"></ul>
+                <form id="message-form">
+                    <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+                    <button type="submit">Send</button>
+                </form>
+            </div>
+        </main>
+    </div>
+    <script src="http://localhost:5001/socket.io/socket.io.js"></script>
+    <script src="http://localhost:5001/socket.io/socket.io.js"></script>
+    <script>
+        const token = localStorage.getItem('livaura_token');
+        const user = JSON.parse(localStorage.getItem('livaura_user'));
+        const API_BASE_URL = 'http://localhost:5001';
+        let userColor;
+
+        function renderMessage(msg) {
+            const messages = document.getElementById('messages');
+            const item = document.createElement('li');
+            item.className = 'message';
+            const messageTime = new Date(msg.createdAt).toLocaleTimeString();
+            item.innerHTML = `
+                <span class="message-user" style="color:${msg.color}">${msg.userName}</span>
+                <span class="message-time">${messageTime}</span>:
+                <span class="message-text">${msg.text}</span>
+            `;
+            messages.appendChild(item);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        async function fetchMessageHistory(roomId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/messages/history/${roomId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Failed to fetch message history.');
+                const messages = await response.json();
+                messages.forEach(renderMessage);
+            } catch (error) {
+                console.error('Error fetching message history:', error);
+            }
+        }
+
+                       /* --- Notification JS (to be added before initializePage() in all room HTML files) --- */
+        const socket = io(API_BASE_URL); // Socket.io client connection
+
+        function setupNotifications(roomId) {
+            socket.emit('joinRoom', roomId); // Join the room's socket channel
+
+            socket.on('activityNotification', (data) => {
+                const user = JSON.parse(localStorage.getItem('livaura_user'));
+                // Ignore notifications generated by the current user
+                if (data.userName !== user.name) {
+                    showNotification(data);
+                }
+            });
+        }
+
+        function showNotification(data) {
+            const bar = document.getElementById('notificationBar');
+            if (!bar) return; // Prevent errors if on dashboard page
+
+            const note = document.createElement('div');
+            note.className = 'notification';
+            
+            let icon = '🔔';
+            let title = 'Activity Update';
+            
+            if (data.type === 'join' || data.type === 'leave' || data.type === 'lock') {
+                title = 'Room/Member Change';
+                icon = '👥';
+            } else if (data.type === 'expense' || data.type === 'purchase') {
+                title = 'Money Activity';
+                icon = '💰';
+            } else if (data.type === 'chat') {
+                title = 'New Message';
+                icon = '💬';
+            } else if (data.type === 'calendar') {
+                title = 'Calendar Event';
+                icon = '🗓️';
+            }
+            
+            note.innerHTML = `
+                <div class="notification-header">${icon} ${title}</div>
+                <div class="notification-body">${data.description}</div>
+            `;
+            
+            bar.prepend(note); // Add to the top
+            
+            // Animate it in
+            setTimeout(() => { note.classList.add('show'); }, 10);
+
+            // Animate it out and remove after 5 seconds
+            setTimeout(() => {
+                note.classList.remove('show');
+                note.addEventListener('transitionend', () => note.remove());
+            }, 5000);
+        }
+
+        async function initializePage() {
+            if (!token || !user) { window.location.href = 'index.html'; return; }
+            document.getElementById('userName').textContent = user.name;
+            
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === 'roomChat.html') {
+                    link.classList.add('active');
+                }
+            });
+
+            const roomResponse = await fetch(`${API_BASE_URL}/api/rooms`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const room = await roomResponse.json();
+
+            if (room) {
+                await fetchMessageHistory(room._id);
+
+                const socket = io(API_BASE_URL);
+                socket.emit('joinRoom', room._id);
+
+                userColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+
+                document.getElementById('message-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const input = document.getElementById('message-input');
+                    if (input.value) {
+                        const msg = {
+                            room: room._id,
+                            user: user._id,
+                            userName: user.name,
+                            text: input.value,
+                            color: userColor,
+                            createdAt: new Date()
+                        };
+                        socket.emit('chatMessage', msg);
+                        input.value = '';
+                    }
+                });
+
+                socket.on('chatMessage', (msg) => {
+                    renderMessage(msg);
+                });
+
+                if (room.createdBy === user._id) {
+                    const clearChatBtn = document.getElementById('clearChatBtn');
+                    clearChatBtn.classList.remove('hidden');
+
+                    clearChatBtn.addEventListener('click', async () => {
+                        if (confirm('Are you sure you want to clear the chat? This cannot be undone.')) {
+                            try {
+                                const response = await fetch(`${API_BASE_URL}/api/messages/clear`, {
+                                    method: 'DELETE',
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
+                                if (response.ok) {
+                                    alert('Chat cleared successfully!');
+                                    document.getElementById('messages').innerHTML = '';
+                                } else {
+                                    const errorData = await response.json();
+                                    alert(`Error clearing chat: ${errorData.message}`);
+                                }
+                            } catch (error) {
+                                alert('Error: Could not connect to server.');
+                            }
+                        }
+                    });
+                }
+            } else {
+                alert('You must be in a room to use the message board.');
+                window.location.href = 'dashboard.html';
+            }
+        }
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => { 
+            localStorage.clear(); 
+            window.location.href = 'index.html'; 
+        });
+
+        initializePage();
+    </script>
+</body>
+</html>

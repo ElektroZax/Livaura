@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Expenses</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4A90E2; --sidebar-bg: #2c3e50; --main-bg: #f4f7f6; --card-bg: #ffffff; --text-color: #34495e; --border-color: #e8e8e8; --font-size-base: 14px; --danger-color: #e74c3c; --success-color: #2ecc71;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--main-bg); margin: 0; font-size: var(--font-size-base); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; background-color: var(--card-bg); padding: 0 1.5rem; height: 60px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .top-nav .brand { font-size: 1.5rem; font-weight: 600; color: var(--text-color); }
+        .top-nav .user-profile { font-weight: 500; }
+        .app-container { display: flex; flex-grow: 1; overflow: hidden; }
+        .sidebar { width: 220px; background-color: var(--sidebar-bg); color: #bdc3c7; padding: 1rem; display: flex; flex-direction: column; flex-shrink: 0; }
+        .nav-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+        .nav-item a { display: flex; align-items: center; padding: 0.8rem; text-decoration: none; border-radius: 6px; margin-bottom: 0.25rem; color: #bdc3c7; font-weight: 500; cursor: pointer; }
+        .nav-item a:hover, .nav-item a.active { background-color: rgba(255, 255, 255, 0.1); color: white; }
+        .logout-btn { margin-top: auto; border-top: 1px solid #34495e; padding-top: 0.5rem; }
+        .content-wrapper { flex-grow: 1; padding: 1.5rem; overflow-y: auto; }
+        .card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1.5rem; }
+        h1 { font-size: 1.8rem; margin-top: 0; margin-bottom: 1.5rem; }
+        h2 { margin-top: 0; font-size: 1.2rem; padding-bottom: 0.8rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; }
+        input[type="text"], input[type="number"], textarea { width: 100%; padding: 10px; margin-bottom: 0.8rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; font-family: 'Poppins', sans-serif; }
+        button, .button { background-color: var(--primary-color); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+        .button.danger { background-color: var(--danger-color); }
+        .button.success { background-color: var(--success-color); }
+        .room-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .members-list, .requests-list { list-style: none; padding: 0; }
+        .members-list li, .requests-list > div { padding: 0.4rem 0; font-size: 0.9rem; border-bottom: 1px solid #f0f0f0; }
+        .grocery-grid { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; }
+        .grocery-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; border-bottom: 1px solid var(--border-color); }
+        .purchase-btn { background-color: var(--success-color); }
+        .hidden { display: none; }
+        
+        .chart-container {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+                #notificationBar {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+        }
+        .notification {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-left: 5px solid var(--primary-color);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .notification-header {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        .notification-body {
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="top-nav">
+        <div class="brand">Livaura</div>
+        <div class="user-profile"><span id="userName"></span></div>
+    </header>
+    <div class="app-container">
+        <aside class="sidebar">
+            <ul class="nav-list" id="roomNav">
+                <li class="nav-item"><a class="nav-link" href="room.html"><span>Overview</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomGrocery.html"><span>Grocery List</span></a></li>
+                <li class="nav-item"><a class="nav-link active" href="roomExpenses.html"><span>Expenses</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomActivity.html"><span>Activity</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomCalendar.html"><span>Calendar</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="roomChat.html"><span>Message Board</span></a></li>
+            </ul>
+            <div class="logout-btn"><button id="logoutBtn" style="background:none; border:none; color:inherit; padding:0; width:100%; text-align:left;">Logout</button></div>
+        </aside>
+        <main class="content-wrapper">
+            <h1>Expenses</h1>
+            <div class="card">
+                <h2>Add New Expense</h2>
+                <form id="addExpenseForm">
+                    <input type="text" id="expenseDesc" placeholder="Description" required>
+                    <input type="number" step="0.01" id="expenseAmount" placeholder="Amount" required>
+                    <button type="submit">Add Expense</button>
+                </form>
+            </div>
+            
+            <div class="card">
+                <h2 style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Expenses Breakdown</span>
+                    <div id="ownerButtons" class="hidden">
+                        <button id="sendReportBtn" class="button success">Send Report</button>
+                        <button id="resetChartBtn" class="button danger">Reset Chart</button>
+                    </div>
+                </h2>
+                <div class="chart-container">
+                    <canvas id="expensePieChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Expense List</h2>
+                <div id="expenseListContainer"></div>
+            </div>
+
+            <div class="card">
+                <h2>Expense Split</h2>
+                <div id="splitContainer"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="http://localhost:5001/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const token = localStorage.getItem('livaura_token');
+    const user = JSON.parse(localStorage.getItem('livaura_user'));
+    const API_BASE_URL = 'http://localhost:5001';
+    let expenseChartInstance = null;
+    let isOwner = false;
+
+                   /* --- Notification JS (to be added before initializePage() in all room HTML files) --- */
+        const socket = io(API_BASE_URL); // Socket.io client connection
+
+        function setupNotifications(roomId) {
+            socket.emit('joinRoom', roomId); // Join the room's socket channel
+
+            socket.on('activityNotification', (data) => {
+                const user = JSON.parse(localStorage.getItem('livaura_user'));
+                // Ignore notifications generated by the current user
+                if (data.userName !== user.name) {
+                    showNotification(data);
+                }
+            });
+        }
+
+        function showNotification(data) {
+            const bar = document.getElementById('notificationBar');
+            if (!bar) return; // Prevent errors if on dashboard page
+
+            const note = document.createElement('div');
+            note.className = 'notification';
+            
+            let icon = '🔔';
+            let title = 'Activity Update';
+            
+            if (data.type === 'join' || data.type === 'leave' || data.type === 'lock') {
+                title = 'Room/Member Change';
+                icon = '👥';
+            } else if (data.type === 'expense' || data.type === 'purchase') {
+                title = 'Money Activity';
+                icon = '💰';
+            } else if (data.type === 'chat') {
+                title = 'New Message';
+                icon = '💬';
+            } else if (data.type === 'calendar') {
+                title = 'Calendar Event';
+                icon = '🗓️';
+            }
+            
+            note.innerHTML = `
+                <div class="notification-header">${icon} ${title}</div>
+                <div class="notification-body">${data.description}</div>
+            `;
+            
+            bar.prepend(note); // Add to the top
+            
+            // Animate it in
+            setTimeout(() => { note.classList.add('show'); }, 10);
+
+            // Animate it out and remove after 5 seconds
+            setTimeout(() => {
+                note.classList.remove('show');
+                note.addEventListener('transitionend', () => note.remove());
+            }, 5000);
+        }
+
+    async function initializePage() {
+        if (!token || !user) { window.location.href = 'index.html'; return; }
+        document.getElementById('userName').textContent = user.name;
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === 'roomExpenses.html') link.classList.add('active');
+        });
+
+        try {
+            const roomResponse = await fetch(`${API_BASE_URL}/api/rooms`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (roomResponse.ok) {
+                const room = await roomResponse.json();
+                if (room && room.createdBy === user._id) {
+                    isOwner = true;
+                    document.getElementById('ownerButtons').classList.remove('hidden');
+                }
+            }
+        } catch (error) { console.error("Could not verify room ownership:", error); }
+
+        fetchExpenses();
+        fetchSplit();
+    }
+
+    async function fetchExpenses() {
+        const listContainer = document.getElementById('expenseListContainer');
+        try {
+            const chartResponse = await fetch(`${API_BASE_URL}/api/expenses/chart-data`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!chartResponse.ok) throw new Error('Could not load chart data.');
+            const chartData = await chartResponse.json();
+            renderPieChart(chartData);
+
+            const expensesResponse = await fetch(`${API_BASE_URL}/api/expenses`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!expensesResponse.ok) throw new Error('Could not load expense list.');
+            const expenses = await expensesResponse.json();
+
+            if (!expenses || expenses.length === 0) {
+                listContainer.innerHTML = '<p>No expenses recorded.</p>';
+                return;
+            }
+            listContainer.innerHTML = expenses.map(e => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; border-bottom: 1px solid #f0f0f0;">
+                    <span>${e.description} – ₹${e.amount.toFixed(2)} (by ${e.addedBy ? e.addedBy.name : 'a former member'})</span>
+                    ${isOwner || (e.addedBy && e.addedBy._id === user._id) ? `<button class="delete-expense-btn" data-id="${e._id}">❌</button>` : ''}
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error("Failed to fetch expenses:", error);
+            document.getElementById('expensePieChart').style.display = 'none';
+            listContainer.innerHTML = `<p style="color: var(--danger-color);">${error.message}</p>`;
+        }
+    }
+
+    async function fetchSplit() {
+        const container = document.getElementById('splitContainer');
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/expenses/split`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || 'Failed to fetch split data.');
+            }
+            const split = await response.json();
+            container.innerHTML = `
+                <h3>Total: ₹${split.total.toFixed(2)}</h3>
+                <h4>Per Head: ₹${split.perHead.toFixed(2)}</h4>
+                <h4>Balances:</h4>
+                <ul style="list-style: none; padding: 0;">
+                    ${Object.entries(split.balances).map(([memberName, data]) => {
+                        const balance = -data.owes;
+                        const isCurrentUser = data.userId === user._id;
+                        let settleButton = '';
+                        if (balance < -0.01 && isCurrentUser) {
+                           settleButton = `<button class="settle-btn" style="margin-left: 1rem; background-color: #f39c12;">Settle Up</button>`;
+                        }
+                        return `<li style="margin: 6px 0; font-weight: bold; display: flex; align-items: center;">
+                            <span style="color: ${balance >= 0 ? 'green' : 'red'};">
+                                ${memberName} ${balance >= 0 ? `gets ₹${balance.toFixed(2)}` : `owes ₹${(-balance).toFixed(2)}`}
+                            </span>
+                            ${settleButton}
+                        </li>`;
+                    }).join('')}
+                </ul>`;
+        } catch (error) {
+            console.error("Failed to fetch split data:", error);
+            container.innerHTML = `<p style="color: var(--danger-color);">Could not load expense split: ${error.message}</p>`;
+        }
+    }
+    
+    function renderPieChart(data) {
+        if (expenseChartInstance) { expenseChartInstance.destroy(); }
+        document.getElementById('expensePieChart').style.display = 'block';
+        const ctx = document.getElementById('expensePieChart').getContext('2d');
+        const labels = Object.keys(data);
+        const amounts = Object.values(data);
+        expenseChartInstance = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{ data: amounts, backgroundColor: ['#4A90E2', '#388E3C', '#F5A623', '#D32F2F', '#8E24AA', '#00796B'] }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Expense Contributions' }
+                }
+            }
+        });
+    }
+
+    // --- FINAL, CORRECT EVENT LISTENERS ---
+
+    document.getElementById('addExpenseForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const desc = document.getElementById('expenseDesc').value;
+        const amount = parseFloat(document.getElementById('expenseAmount').value);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/expenses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ desc, amount })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message);
+            }
+            document.getElementById('addExpenseForm').reset();
+            fetchExpenses();
+            fetchSplit();
+        } catch (error) {
+            alert(`Failed to add expense: ${error.message}`);
+        }
+    });
+
+    document.getElementById('expenseListContainer').addEventListener('click', async (e) => {
+        if (e.target.classList.contains('delete-expense-btn')) {
+            if (confirm('Are you sure you want to delete this expense?')) {
+                const expenseId = e.target.dataset.id;
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/expenses/${expenseId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.message);
+                    }
+                    fetchExpenses();
+                    fetchSplit();
+                } catch (error) {
+                    alert(`Failed to delete expense: ${error.message}`);
+                }
+            }
+        }
+    });
+
+    document.getElementById('splitContainer').addEventListener('click', async (e) => {
+        if (e.target.classList.contains('settle-btn')) {
+            if (confirm('Are you sure you want to settle your balance? This action cannot be undone.')) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/expenses/settle`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message);
+                    }
+                    alert(data.message);
+                    fetchExpenses();
+                    fetchSplit();
+                } catch (error) {
+                    alert(`Error settling up: ${error.message}`);
+                }
+            }
+        }
+    });
+    
+    document.getElementById('resetChartBtn').addEventListener('click', async () => {
+        if (confirm('Are you sure you want to reset everything? This will delete all expenses and settlements.')) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/expenses/clear`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                 if (!response.ok) {
+                    throw new Error(data.message);
+                }
+                alert(data.message);
+                fetchExpenses();
+                fetchSplit();
+            } catch (error) {
+                alert(`Failed to reset chart: ${error.message}`);
+            }
+        }
+    });
+    
+    document.getElementById('sendReportBtn').addEventListener('click', async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/expenses/report`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message);
+            alert(data.message);
+        } catch (error) {
+            alert(`Failed to send report: ${error.message}`);
+        }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => { 
+        localStorage.clear(); 
+        window.location.href = 'index.html'; 
+    });
+
+    initializePage();
+</script>
+</body>
+</html>
